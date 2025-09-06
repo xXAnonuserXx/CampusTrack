@@ -5,8 +5,10 @@ import {
   StyleSheet, 
   ScrollView, 
   TouchableOpacity, 
-  useColorScheme 
+  useColorScheme,
+  Platform
 } from 'react-native';
+import { useRef, useEffect, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, Users, Clock, Wifi } from 'lucide-react-native';
 import CampusMap from '@/components/CampusMap';
@@ -14,8 +16,22 @@ import CampusMap from '@/components/CampusMap';
 export default function MapScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const mounted = useRef(true);
   
   const [selectedBuilding, setSelectedBuilding] = useState(null);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  const handleBuildingSelect = useCallback((building) => {
+    if (mounted.current) {
+      setSelectedBuilding(building);
+    }
+  }, []);
 
   const styles = createStyles(isDark);
 
@@ -35,11 +51,23 @@ export default function MapScreen() {
 
       {/* Interactive Campus Map */}
       <View style={styles.mapContainer}>
-        <CampusMap 
-          isDark={isDark}
-          selectedBuilding={selectedBuilding}
-          onBuildingSelect={setSelectedBuilding}
-        />
+        {Platform.OS !== 'web' ? (
+          <CampusMap 
+            isDark={isDark}
+            selectedBuilding={selectedBuilding}
+            onBuildingSelect={handleBuildingSelect}
+          />
+        ) : (
+          <View style={[styles.webMapPlaceholder, { backgroundColor: isDark ? '#374151' : '#f3f4f6' }]}>
+            <MapPin size={48} color={isDark ? '#9ca3af' : '#6b7280'} />
+            <Text style={[styles.placeholderText, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
+              Interactive Campus Map
+            </Text>
+            <Text style={[styles.placeholderSubtext, { color: isDark ? '#6b7280' : '#9ca3af' }]}>
+              Available on mobile devices
+            </Text>
+          </View>
+        )}
       </View>
 
       <ScrollView style={styles.bottomContent} showsVerticalScrollIndicator={false}>
@@ -334,6 +362,23 @@ function createStyles(isDark: boolean) {
     infoAddress: {
       fontSize: 14,
       color: isDark ? '#d1d5db' : '#4b5563',
+    },
+    webMapPlaceholder: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 16,
+    },
+    placeholderText: {
+      fontSize: 18,
+      fontWeight: '600',
+      marginTop: 12,
+      textAlign: 'center',
+    },
+    placeholderSubtext: {
+      fontSize: 14,
+      marginTop: 4,
+      textAlign: 'center',
     },
   });
 }
